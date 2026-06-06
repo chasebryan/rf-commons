@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="RF Commons is an open-source, ad-free radio workbench for exploring the public radio spectrum."
+    >
+    <title>RF Commons</title>
+    <link rel="stylesheet" href="src/styles.css">
+    <script src="src/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">RF</span>
+          <div>
+            <h1>RF Commons</h1>
+            <p>Open radio for everyone.</p>
+          </div>
+        </div>
+        <div class="topbar-status" aria-live="polite">
+          <span class="status-dot"></span>
+          <span id="sourceStatus">Synthetic receiver</span>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <aside class="sidebar" aria-label="Primary">
+          <nav class="mode-tabs" aria-label="Workbench modes">
+            <button class="mode-tab is-active" type="button" data-view="listen">
+              <span aria-hidden="true">~</span>
+              Listen
+            </button>
+            <button class="mode-tab" type="button" data-view="learn">
+              <span aria-hidden="true">?</span>
+              Learn
+            </button>
+            <button class="mode-tab" type="button" data-view="map">
+              <span aria-hidden="true">+</span>
+              Map
+            </button>
+          </nav>
+
+          <section class="sidebar-section">
+            <h2>Source</h2>
+            <div class="segmented" role="group" aria-label="Receiver source">
+              <button class="segment is-active" type="button" data-source="synthetic">Synthetic</button>
+              <button class="segment" type="button" data-source="rtl">RTL-SDR</button>
+              <button class="segment" type="button" data-source="public">Public</button>
+            </div>
+          </section>
+
+          <section class="sidebar-section">
+            <h2>Presets</h2>
+            <div class="preset-list" id="presetList"></div>
+          </section>
+        </aside>
+
+        <main class="main-surface">
+          <section class="view-panel is-active" id="listenView" aria-labelledby="listenTitle">
+            <div class="listen-grid">
+              <section class="radio-pane" aria-labelledby="listenTitle">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Listen</p>
+                    <h2 id="listenTitle">Spectrum Workbench</h2>
+                  </div>
+                  <button class="icon-button" id="scanToggle" type="button" aria-label="Start scan" title="Start scan">
+                    <span aria-hidden="true">></span>
+                  </button>
+                </div>
+
+                <div class="tuner-strip">
+                  <label class="control-field">
+                    <span>Frequency</span>
+                    <div class="frequency-input">
+                      <input id="frequencyInput" type="number" inputmode="decimal" step="0.001" min="0.1" value="162.550">
+                      <span>MHz</span>
+                    </div>
+                  </label>
+
+                  <label class="control-field">
+                    <span>Mode</span>
+                    <select id="modeSelect">
+                      <option value="AM">AM</option>
+                      <option value="FM">FM</option>
+                      <option value="NFM" selected>NFM</option>
+                      <option value="WFM">WFM</option>
+                      <option value="SSB">SSB</option>
+                      <option value="CW">CW</option>
+                      <option value="DATA">DATA</option>
+                    </select>
+                  </label>
+
+                  <label class="control-field">
+                    <span>Span</span>
+                    <select id="spanSelect">
+                      <option value="0.05">50 kHz</option>
+                      <option value="0.2" selected>200 kHz</option>
+                      <option value="1">1 MHz</option>
+                      <option value="2.4">2.4 MHz</option>
+                      <option value="10">10 MHz</option>
+                    </select>
+                  </label>
+
+                  <button class="action-button" id="bookmarkButton" type="button">
+                    <span aria-hidden="true">+</span>
+                    Bookmark
+                  </button>
+                </div>
+
+                <div class="meter-row" aria-label="Receiver controls">
+                  <label>
+                    <span>Gain</span>
+                    <input id="gainSlider" type="range" min="0" max="48" value="28">
+                  </label>
+                  <label>
+                    <span>Bandwidth</span>
+                    <input id="bandwidthSlider" type="range" min="4" max="250" value="12">
+                  </label>
+                  <label>
+                    <span>Squelch</span>
+                    <input id="squelchSlider" type="range" min="-90" max="-20" value="-55">
+                  </label>
+                </div>
+
+                <div class="spectrum-frame">
+                  <canvas id="spectrumCanvas" width="1200" height="260" aria-label="Spectrum display"></canvas>
+                  <canvas id="waterfallCanvas" width="1200" height="360" aria-label="Waterfall display"></canvas>
+                </div>
+              </section>
+
+              <section class="side-pane" aria-label="Current signal">
+                <div class="signal-summary">
+                  <p class="eyebrow">Likely Signal</p>
+                  <h2 id="signalName">NOAA Weather Radio</h2>
+                  <dl>
+                    <div>
+                      <dt>Common use</dt>
+                      <dd id="signalUse">Weather broadcast</dd>
+                    </div>
+                    <div>
+                      <dt>Bandwidth</dt>
+                      <dd id="signalBandwidth">~12.5 kHz</dd>
+                    </div>
+                    <div>
+                      <dt>Next step</dt>
+                      <dd id="signalNext">Try NFM with moderate squelch</dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div class="logbook-panel">
+                  <div class="panel-heading compact">
+                    <div>
+                      <p class="eyebrow">Logbook</p>
+                      <h2>Local Notes</h2>
+                    </div>
+                  </div>
+                  <form id="logForm" class="log-form">
+                    <textarea id="logNote" rows="3" placeholder="Signal note"></textarea>
+                    <button class="action-button" type="submit">Save log</button>
+                  </form>
+                  <div class="entry-list" id="logList"></div>
+                </div>
+
+                <div class="bookmark-panel">
+                  <div class="panel-heading compact">
+                    <div>
+                      <p class="eyebrow">Saved</p>
+                      <h2>Bookmarks</h2>
+                    </div>
+                  </div>
+                  <div class="entry-list" id="bookmarkList"></div>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="view-panel" id="learnView" aria-labelledby="learnTitle">
+            <div class="learn-layout">
+              <section class="identifier-pane">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Learn</p>
+                    <h2 id="learnTitle">Signal Identifier</h2>
+                  </div>
+                </div>
+
+                <div class="identifier-grid">
+                  <label class="control-field">
+                    <span>Band</span>
+                    <select id="identifyBand">
+                      <option value="vhf">VHF</option>
+                      <option value="uhf">UHF</option>
+                      <option value="hf">HF</option>
+                      <option value="air">Airband</option>
+                    </select>
+                  </label>
+                  <label class="control-field">
+                    <span>Width</span>
+                    <select id="identifyWidth">
+                      <option value="narrow">Narrow</option>
+                      <option value="wide">Wide</option>
+                      <option value="pulse">Pulse</option>
+                    </select>
+                  </label>
+                  <label class="control-field">
+                    <span>Sound</span>
+                    <select id="identifySound">
+                      <option value="voice">Voice</option>
+                      <option value="data">Data</option>
+                      <option value="tone">Tone</option>
+                      <option value="broadcast">Broadcast</option>
+                    </select>
+                  </label>
+                  <label class="control-field">
+                    <span>Pattern</span>
+                    <select id="identifyPattern">
+                      <option value="steady">Steady</option>
+                      <option value="bursty">Bursty</option>
+                      <option value="keyed">Keyed</option>
+                      <option value="wideband">Wideband</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="match-strip" id="matchStrip"></div>
+              </section>
+
+              <section class="guide-grid" id="signalGuide"></section>
+            </div>
+          </section>
+
+          <section class="view-panel" id="mapView" aria-labelledby="mapTitle">
+            <div class="map-layout">
+              <section class="receiver-map" aria-labelledby="mapTitle">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Map</p>
+                    <h2 id="mapTitle">Public Receiver Directory</h2>
+                  </div>
+                  <select id="receiverFilter" aria-label="Receiver band filter">
+                    <option value="all">All bands</option>
+                    <option value="HF">HF</option>
+                    <option value="VHF">VHF</option>
+                    <option value="UHF">UHF</option>
+                  </select>
+                </div>
+
+                <div class="map-canvas" id="mapCanvas" aria-label="Receiver map"></div>
+              </section>
+
+              <section class="receiver-list" id="receiverList" aria-label="Receivers"></section>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
+
