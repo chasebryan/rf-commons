@@ -7,6 +7,7 @@ const files = {
   packageJson: await readFile(new URL("../package.json", import.meta.url), "utf8"),
   readme: await readFile(new URL("../README.md", import.meta.url), "utf8"),
 };
+const presetBlock = files.js.match(/const presets = \[([\s\S]*?)\];/)?.[1] || "";
 
 const checks = [
   ["README names RF Commons", files.readme.includes("# RF Commons")],
@@ -30,6 +31,9 @@ const checks = [
     files.packageJson.includes('"test:rhel-installer": "node scripts/test-rhel-installer.mjs"'),
   ],
   ["App renders presets", files.js.includes("const presets =")],
+  ["App includes expanded preset library", presetCount() >= 24],
+  ["App includes USB/LSB mode options", files.html.includes('value="USB"') && files.html.includes('value="LSB"')],
+  ["Receiver helper supports LSB", await fileIncludes("../scripts/dev.mjs", 'mode === "LSB"')],
   ["App connects receiver streams", files.js.includes("connectReceiverAudio")],
   ["App checks receiver health", files.js.includes("checkReceiverHealth")],
   ["App stores local bookmarks", files.js.includes("rf-commons-bookmarks")],
@@ -51,4 +55,8 @@ if (failures.length) {
 async function fileIncludes(relativePath, pattern) {
   const content = await readFile(new URL(relativePath, import.meta.url), "utf8");
   return content.includes(pattern);
+}
+
+function presetCount() {
+  return (presetBlock.match(/\n\s+name: "/g) || []).length;
 }

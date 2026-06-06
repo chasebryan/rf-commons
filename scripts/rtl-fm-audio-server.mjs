@@ -114,14 +114,16 @@ function receiverProfile(params) {
   const freqMHz = Number(params.get("freq") || "162.55");
   const mode = String(params.get("mode") || "NFM").toUpperCase();
   const wide = mode === "WFM";
-  const ssb = mode === "SSB";
+  const usb = mode === "USB" || mode === "SSB";
+  const lsb = mode === "LSB";
   const am = mode === "AM";
+  const cw = mode === "CW";
   const data = mode === "DATA";
 
   return {
     audioRate: wide ? "48000" : "24000",
     freqHz: Math.round(freqMHz * 1_000_000),
-    rtlMode: wide ? "wbfm" : am ? "am" : ssb ? "usb" : data ? "fm" : "fm",
+    rtlMode: wide ? "wbfm" : am ? "am" : lsb ? "lsb" : usb || cw ? "usb" : data ? "fm" : "fm",
     sampleRate: wide ? "200k" : "24k",
   };
 }
