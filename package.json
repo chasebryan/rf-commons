@@ -11,6 +11,7 @@
     "dev": "node scripts/dev.mjs",
     "doctor": "node scripts/doctor.mjs",
     "serve": "node scripts/dev.mjs",
-    "start": "node scripts/dev.mjs"
+    "start": "node scripts/dev.mjs",
+    "test:rhel-installer": "node scripts/test-rhel-installer.mjs"
   }
 }

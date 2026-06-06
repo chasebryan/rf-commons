@@ -55,6 +55,7 @@ You can also run the repository checks with any Node.js runtime:
 
 ```sh
 node scripts/check.mjs
+node scripts/test-rhel-installer.mjs
 ```
 
 Check local receiver dependencies with:

@@ -110,8 +110,8 @@ try to connect audio.
   <https://packages.fedoraproject.org/pkgs/rtl-sdr/rtl-sdr/>
 - The Fedora SDR wiki describes RTL-SDR as supported SDR hardware on Fedora:
   <https://fedoraproject.org/wiki/SDR>
-- Red Hat documents DNF as the package installation tool for RHEL 9:
-  <https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/htmlsingle/managing_software_with_the_dnf_tool/index>
+- Red Hat documents DNF as the package installation tool for RHEL 10:
+  <https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_software_with_the_dnf_tool>
 - Red Hat notes that EPEL is community-supported and outside RHEL production
   support scope:
   <https://access.redhat.com/solutions/3358>

@@ -191,7 +191,7 @@ main() {
   fi
 
   echo "RF Commons dependency installer"
-  echo "Detected EL/Fedora major: ${rhel_major}"
+  echo "Detected Enterprise Linux major: ${rhel_major}"
   echo "Architecture: ${arch}"
   echo ""
   echo "This may enable EPEL and RPM Fusion Free repositories for rtl-sdr/ffmpeg."

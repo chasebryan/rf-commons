@@ -4,6 +4,7 @@ const files = {
   html: await readFile(new URL("../index.html", import.meta.url), "utf8"),
   css: await readFile(new URL("../src/styles.css", import.meta.url), "utf8"),
   js: await readFile(new URL("../src/app.js", import.meta.url), "utf8"),
+  packageJson: await readFile(new URL("../package.json", import.meta.url), "utf8"),
   readme: await readFile(new URL("../README.md", import.meta.url), "utf8"),
 };
 
@@ -19,6 +20,14 @@ const checks = [
   [
     "Installer includes RHEL dependency packages",
     await fileIncludes("../scripts/install-rhel-deps.sh", "dnf_install nodejs rtl-sdr"),
+  ],
+  [
+    "Installer has a RHEL dry-run regression test",
+    await fileIncludes("../scripts/test-rhel-installer.mjs", "default RHEL 10 plan"),
+  ],
+  [
+    "npm exposes RHEL installer test",
+    files.packageJson.includes('"test:rhel-installer": "node scripts/test-rhel-installer.mjs"'),
   ],
   ["App renders presets", files.js.includes("const presets =")],
   ["App connects receiver streams", files.js.includes("connectReceiverAudio")],
