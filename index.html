@@ -8,8 +8,9 @@
       content="RF Commons is an open-source, ad-free radio workbench for exploring the public radio spectrum."
     >
     <title>RF Commons</title>
-    <link rel="stylesheet" href="src/styles.css">
-    <script src="src/app.js" defer></script>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="src/styles.css?v=0.3.0">
+    <script src="src/app.js?v=0.3.0" defer></script>
   </head>
   <body>
     <div class="app-shell">
@@ -23,7 +24,7 @@
         </div>
         <div class="topbar-status" aria-live="polite">
           <span class="status-dot"></span>
-          <span id="sourceStatus">Synthetic receiver</span>
+          <span id="sourceStatus">RTL-SDR local helper</span>
         </div>
       </header>
 
@@ -47,8 +48,8 @@
           <section class="sidebar-section">
             <h2>Source</h2>
             <div class="segmented" role="group" aria-label="Receiver source">
-              <button class="segment is-active" type="button" data-source="synthetic">Synthetic</button>
-              <button class="segment" type="button" data-source="rtl">RTL-SDR</button>
+              <button class="segment" type="button" data-source="synthetic">Demo</button>
+              <button class="segment is-active" type="button" data-source="rtl">RTL-SDR</button>
               <button class="segment" type="button" data-source="public">Public</button>
             </div>
           </section>
@@ -106,10 +107,21 @@
                     </select>
                   </label>
 
-                  <button class="action-button" id="bookmarkButton" type="button">
-                    <span aria-hidden="true">+</span>
-                    Bookmark
-                  </button>
+                  <div class="tuner-actions">
+                    <button class="action-button" id="audioToggle" type="button">
+                      <span aria-hidden="true">></span>
+                      Connect audio
+                    </button>
+                    <button class="action-button secondary-action" id="bookmarkButton" type="button">
+                      <span aria-hidden="true">+</span>
+                      Bookmark
+                    </button>
+                  </div>
+
+                  <label class="control-field stream-field">
+                    <span>Audio stream</span>
+                    <input id="audioStreamInput" type="url" value="/audio.mp3?freq=162.550&amp;mode=NFM">
+                  </label>
                 </div>
 
                 <div class="meter-row" aria-label="Receiver controls">
@@ -124,6 +136,10 @@
                   <label>
                     <span>Squelch</span>
                     <input id="squelchSlider" type="range" min="-90" max="-20" value="-55">
+                  </label>
+                  <label>
+                    <span>Volume</span>
+                    <input id="volumeSlider" type="range" min="0" max="100" value="38">
                   </label>
                 </div>
 
@@ -149,6 +165,10 @@
                     <div>
                       <dt>Next step</dt>
                       <dd id="signalNext">Try NFM with moderate squelch</dd>
+                    </div>
+                    <div>
+                      <dt>Audio</dt>
+                      <dd id="audioStatus">Checking receiver helper</dd>
                     </div>
                   </dl>
                 </div>
@@ -262,4 +282,3 @@
     </div>
   </body>
 </html>
-

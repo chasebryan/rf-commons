@@ -356,9 +356,15 @@ button {
   align-items: end;
 }
 
-.tuner-strip .action-button {
+.tuner-actions {
   grid-column: 1 / -1;
-  justify-self: start;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stream-field {
+  grid-column: 1 / -1;
 }
 
 .control-field,
@@ -428,10 +434,21 @@ button {
   border-color: var(--teal-deep);
 }
 
+.action-button.secondary-action {
+  color: var(--ink);
+  background: #ffffff;
+  border-color: var(--line);
+}
+
+.action-button.is-audio-on {
+  background: var(--rose);
+  border-color: var(--rose);
+}
+
 .meter-row {
   margin: 14px 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -716,11 +733,6 @@ button {
 @media (min-width: 1440px) {
   .tuner-strip {
     grid-template-columns: minmax(180px, 1.2fr) repeat(2, minmax(130px, 0.7fr)) auto;
-  }
-
-  .tuner-strip .action-button {
-    grid-column: auto;
-    justify-self: stretch;
   }
 }
 

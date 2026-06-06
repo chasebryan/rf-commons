@@ -1,12 +1,15 @@
 {
   "name": "rf-commons",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "description": "A free, open-source radio workbench for exploring the RF spectrum.",
   "type": "module",
   "scripts": {
+    "audio:rtl": "node scripts/dev.mjs",
     "check": "node scripts/check.mjs",
-    "serve": "python3 -m http.server 8765"
+    "dev": "node scripts/dev.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "serve": "node scripts/dev.mjs",
+    "start": "node scripts/dev.mjs"
   }
 }
-

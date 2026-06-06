@@ -220,7 +220,7 @@
 
   const state = {
     view: "listen",
-    source: "synthetic",
+    source: "rtl",
     frequency: 162.55,
     mode: "NFM",
     span: 0.2,
@@ -233,7 +233,17 @@
     animationFrame: 0,
     sweep: 0,
     waterfallSeeded: false,
+    audioEnabled: false,
+    audioUnavailable: false,
+    audioMessage: "Checking receiver helper",
+    audioUrl: "/audio.mp3?freq=162.550&mode=NFM",
+    audioUrlDirty: false,
+    receiverHealth: null,
+    volume: 0.38,
   };
+
+  const audioPlayer = new Audio();
+  let lastAudioActivation = 0;
 
   const els = {
     sourceStatus: document.getElementById("sourceStatus"),
@@ -244,7 +254,10 @@
     gainSlider: document.getElementById("gainSlider"),
     bandwidthSlider: document.getElementById("bandwidthSlider"),
     squelchSlider: document.getElementById("squelchSlider"),
+    volumeSlider: document.getElementById("volumeSlider"),
+    audioStreamInput: document.getElementById("audioStreamInput"),
     scanToggle: document.getElementById("scanToggle"),
+    audioToggle: document.getElementById("audioToggle"),
     bookmarkButton: document.getElementById("bookmarkButton"),
     bookmarkList: document.getElementById("bookmarkList"),
     logForm: document.getElementById("logForm"),
@@ -254,6 +267,7 @@
     signalUse: document.getElementById("signalUse"),
     signalBandwidth: document.getElementById("signalBandwidth"),
     signalNext: document.getElementById("signalNext"),
+    audioStatus: document.getElementById("audioStatus"),
     signalGuide: document.getElementById("signalGuide"),
     matchStrip: document.getElementById("matchStrip"),
     identifyBand: document.getElementById("identifyBand"),
@@ -269,17 +283,19 @@
 
   const contexts = {
     spectrum: els.spectrumCanvas.getContext("2d"),
-    waterfall: els.waterfallCanvas.getContext("2d"),
+    waterfall: els.waterfallCanvas.getContext("2d", { willReadFrequently: true }),
   };
 
   function init() {
     renderPresets();
     renderGuide();
     renderReceivers();
+    setupAudioPlayer();
     bindEvents();
     syncControls();
     renderStorage();
     identifySignal();
+    void checkReceiverHealth();
     startVisualization();
   }
 
@@ -294,11 +310,13 @@
 
     els.frequencyInput.addEventListener("input", () => {
       state.frequency = Number(els.frequencyInput.value) || state.frequency;
+      syncSuggestedAudioUrl();
       identifySignal();
     });
 
     els.modeSelect.addEventListener("change", () => {
       state.mode = els.modeSelect.value;
+      syncSuggestedAudioUrl();
       identifySignal();
     });
 
@@ -319,7 +337,24 @@
       state.squelch = Number(els.squelchSlider.value);
     });
 
+    els.volumeSlider.addEventListener("input", () => {
+      state.volume = Number(els.volumeSlider.value) / 100;
+      audioPlayer.volume = state.volume;
+    });
+
+    els.audioStreamInput.addEventListener("input", () => {
+      state.audioUrlDirty = true;
+      state.audioUrl = els.audioStreamInput.value.trim();
+      if (state.audioEnabled) stopReceiverAudio("Stream changed. Reconnect audio.");
+    });
+
     els.scanToggle.addEventListener("click", toggleScan);
+    if (window.PointerEvent) {
+      document.addEventListener("pointerdown", handleAudioActivation);
+    } else {
+      document.addEventListener("click", handleAudioActivation);
+    }
+    document.addEventListener("keydown", handleAudioKeydown);
     els.bookmarkButton.addEventListener("click", addBookmark);
 
     els.logForm.addEventListener("submit", (event) => {
@@ -355,11 +390,20 @@
       button.classList.toggle("is-active", button.dataset.source === source);
     });
     const labels = {
-      synthetic: "Synthetic receiver",
-      rtl: "RTL-SDR bridge pending",
-      public: "Public node import pending",
+      synthetic: "Demo waterfall only",
+      rtl: "RTL-SDR local helper",
+      public: "Public receiver stream",
     };
+    if (source !== "public" && !state.audioUrlDirty) syncSuggestedAudioUrl();
+    if (source === "public" && !state.audioUrlDirty) {
+      state.audioUrl = "";
+      state.audioMessage = "Paste a public receiver audio stream URL";
+    } else if (!state.audioEnabled) {
+      state.audioMessage = receiverStatusMessage();
+    }
+    if (state.audioEnabled) stopReceiverAudio("Source changed. Reconnect audio.");
     els.sourceStatus.textContent = labels[source];
+    syncControls();
   }
 
   function renderPresets() {
@@ -383,6 +427,8 @@
     state.frequency = preset.frequency;
     state.mode = preset.mode;
     state.span = preset.span;
+    syncSuggestedAudioUrl();
+    if (state.audioEnabled) stopReceiverAudio("Preset changed. Reconnect audio.");
     syncControls();
     identifySignal();
     setView("listen");
@@ -395,16 +441,59 @@
     els.gainSlider.value = String(state.gain);
     els.bandwidthSlider.value = String(state.bandwidth);
     els.squelchSlider.value = String(state.squelch);
+    els.volumeSlider.value = String(Math.round(state.volume * 100));
+    els.audioStreamInput.value = state.audioUrl;
     els.scanToggle.classList.toggle("is-running", state.running);
     els.scanToggle.setAttribute("aria-label", state.running ? "Pause scan" : "Start scan");
     els.scanToggle.title = state.running ? "Pause scan" : "Start scan";
     els.scanToggle.firstElementChild.textContent = state.running ? "||" : ">";
+    els.audioToggle.classList.toggle("is-audio-on", state.audioEnabled);
+    els.audioToggle.setAttribute("aria-label", state.audioEnabled ? "Stop audio" : "Connect audio");
+    els.audioToggle.title = state.audioEnabled ? "Stop audio" : "Connect audio";
+    els.audioToggle.firstElementChild.textContent = state.audioEnabled ? "||" : ">";
+    els.audioToggle.lastChild.textContent = state.audioEnabled ? " Stop audio" : " Connect audio";
+    document.documentElement.dataset.audio = state.audioUnavailable
+      ? "unavailable"
+      : state.audioEnabled
+        ? "on"
+        : "off";
+    els.audioStatus.textContent = state.audioMessage;
   }
 
   function toggleScan() {
     state.running = !state.running;
     syncControls();
     if (state.running) startVisualization();
+  }
+
+  function handleAudioActivation(event) {
+    const rawTarget = event.target;
+    const target =
+      rawTarget instanceof Element
+        ? rawTarget
+        : rawTarget && "parentElement" in rawTarget
+          ? rawTarget.parentElement
+          : null;
+    const button = target ? target.closest("#audioToggle") : null;
+    if (!button) return;
+    event.preventDefault();
+    const now = Date.now();
+    if (now - lastAudioActivation < 350) return;
+    lastAudioActivation = now;
+    void toggleAudio();
+  }
+
+  function handleAudioKeydown(event) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    handleAudioActivation(event);
+  }
+
+  async function toggleAudio() {
+    if (state.audioEnabled) {
+      stopReceiverAudio("Audio stopped");
+      return;
+    }
+    await connectReceiverAudio();
   }
 
   function identifySignal() {
@@ -418,6 +507,122 @@
     els.signalUse.textContent = guide.use;
     els.signalBandwidth.textContent = guide.bandwidth;
     els.signalNext.textContent = guide.next;
+  }
+
+  function setupAudioPlayer() {
+    audioPlayer.preload = "none";
+    audioPlayer.volume = state.volume;
+    audioPlayer.addEventListener("playing", () => {
+      state.audioEnabled = true;
+      state.audioUnavailable = false;
+      state.audioMessage = "Playing receiver stream";
+      syncControls();
+    });
+    audioPlayer.addEventListener("waiting", () => {
+      if (!state.audioEnabled) return;
+      state.audioMessage = "Receiver stream buffering";
+      syncControls();
+    });
+    audioPlayer.addEventListener("ended", () => {
+      stopReceiverAudio("Receiver stream ended");
+    });
+    audioPlayer.addEventListener("error", () => {
+      state.audioEnabled = false;
+      state.audioUnavailable = true;
+      state.audioMessage = "Audio stream failed or is not reachable";
+      syncControls();
+    });
+  }
+
+  async function connectReceiverAudio() {
+    const url = state.audioUrl.trim();
+    if (!url) {
+      state.audioEnabled = false;
+      state.audioUnavailable = true;
+      state.audioMessage = "Enter a receiver audio stream URL";
+      syncControls();
+      return;
+    }
+
+    state.audioEnabled = false;
+    state.audioUnavailable = false;
+    state.audioMessage = "Connecting receiver stream";
+    syncControls();
+
+    try {
+      audioPlayer.pause();
+      audioPlayer.src = url;
+      audioPlayer.volume = state.volume;
+      await audioPlayer.play();
+      state.audioEnabled = true;
+      state.audioMessage = "Playing receiver stream";
+    } catch (error) {
+      state.audioEnabled = false;
+      state.audioUnavailable = true;
+      state.audioMessage = "Audio stream failed or was blocked";
+    }
+    syncControls();
+  }
+
+  function stopReceiverAudio(message) {
+    audioPlayer.pause();
+    audioPlayer.removeAttribute("src");
+    audioPlayer.load();
+    state.audioEnabled = false;
+    state.audioMessage = message;
+    syncControls();
+  }
+
+  function syncSuggestedAudioUrl() {
+    if (state.audioUrlDirty || state.source === "public") return;
+    const params = new URLSearchParams({
+      freq: formatFrequency(state.frequency),
+      mode: state.mode,
+    });
+    state.audioUrl = `/audio.mp3?${params.toString()}`;
+  }
+
+  async function checkReceiverHealth() {
+    if (window.location.protocol === "file:") {
+      state.receiverHealth = null;
+      state.audioMessage = "Run node scripts/dev.mjs for receiver audio";
+      syncControls();
+      return;
+    }
+
+    try {
+      const response = await fetch("/health", { cache: "no-store" });
+      if (!response.ok) throw new Error(`health ${response.status}`);
+      state.receiverHealth = await response.json();
+      if (!state.audioEnabled && state.source !== "public") {
+        state.audioMessage = receiverStatusMessage();
+        syncControls();
+      }
+    } catch {
+      state.receiverHealth = null;
+      if (!state.audioEnabled && state.source !== "public") {
+        state.audioMessage = "Run node scripts/dev.mjs for receiver audio";
+        syncControls();
+      }
+    }
+  }
+
+  function receiverStatusMessage() {
+    if (state.source === "synthetic") return "Demo waterfall only";
+    if (!state.receiverHealth) return "Checking receiver helper";
+    if (state.receiverHealth.ok) return "Receiver helper ready";
+    if (!state.receiverHealth.rtl_fm && !state.receiverHealth.ffmpeg) {
+      return "Install rtl_fm and ffmpeg, then restart dev server";
+    }
+    if (!state.receiverHealth.rtl_fm) return "Install rtl_fm, then restart dev server";
+    if (!state.receiverHealth.ffmpeg) return "Install ffmpeg, then restart dev server";
+    if (state.receiverHealth.device && state.receiverHealth.device.ok === false) {
+      return "Plug in an RTL-SDR dongle, then refresh";
+    }
+    if (state.receiverHealth.device && state.receiverHealth.device.ok === null) {
+      return "Install rtl_test for device detection";
+    }
+    return "Receiver helper not ready";
   }
 
   function scoreGuide(input) {

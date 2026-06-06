@@ -43,10 +43,10 @@ Commons workbench. It is a front-end foundation for the product shape: tuner
 controls, a live synthetic spectrum/waterfall, signal hints, bookmarks, a local
 logbook, a learning identifier, and a receiver directory/map surface.
 
-Run it with any static file server:
+Run the app and local receiver endpoint with one command:
 
 ```sh
-python3 -m http.server 8765
+node scripts/dev.mjs
 ```
 
 Then open `http://127.0.0.1:8765`.
@@ -57,11 +57,44 @@ You can also run the repository checks with any Node.js runtime:
 node scripts/check.mjs
 ```
 
+Check local receiver dependencies with:
+
+```sh
+node scripts/doctor.mjs
+```
+
 If npm is available, `npm run check` runs the same script.
 
-The current prototype does not yet connect to RTL-SDR hardware or remote SDR
-nodes. Those integrations should land behind explicit receive-only safety and
-privacy boundaries.
+### Receiver Audio
+
+The waterfall demo is visual-only until a real receiver audio stream is
+connected. The app will not synthesize fake radio audio.
+
+For local RTL-SDR audio, install `rtl_fm` from the rtl-sdr tools and make sure
+`ffmpeg` is available. The one-command dev server exposes health and audio
+endpoints:
+
+```text
+http://127.0.0.1:8765/health
+http://127.0.0.1:8765/audio.mp3?freq=162.550&mode=NFM
+```
+
+The audio field defaults to `/audio.mp3?freq=162.550&mode=NFM`, so you should
+not need to paste URLs for local listening. The server uses `rtl_fm` for
+receive-only demodulation and `ffmpeg` to expose a browser-playable MP3 stream.
+It also runs `rtl_test -t` for device detection. If tools are missing or no
+dongle is connected, `/health`, the terminal, and the app surface report that
+clearly instead of producing placeholder audio.
+
+For Red Hat-family Linux setup details, see
+[docs/redhat-linux.md](docs/redhat-linux.md).
+
+Public receiver audio can also be used if the receiver exposes a direct
+browser-playable stream URL.
+
+The current prototype does not yet include device discovery, gain calibration,
+or IQ/waterfall data from real RTL-SDR samples. Those integrations should land
+behind explicit receive-only safety and privacy boundaries.
 
 ## Safety Boundary
 
