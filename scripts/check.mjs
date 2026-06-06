@@ -16,6 +16,10 @@ const checks = [
   ["HTML exposes audio toggle", files.html.includes('id="audioToggle"')],
   ["HTML exposes volume control", files.html.includes('id="volumeSlider"')],
   ["Docs include Red Hat setup", await fileIncludes("../docs/redhat-linux.md", "Red Hat Linux Setup")],
+  [
+    "Installer includes RHEL dependency packages",
+    await fileIncludes("../scripts/install-rhel-deps.sh", "dnf_install nodejs rtl-sdr"),
+  ],
   ["App renders presets", files.js.includes("const presets =")],
   ["App connects receiver streams", files.js.includes("connectReceiverAudio")],
   ["App checks receiver health", files.js.includes("checkReceiverHealth")],

@@ -22,17 +22,43 @@ RF Commons needs:
 - `ffmpeg` with MP3 encoding support.
 - Chrome or Chromium only for browser smoke tests.
 
-On Fedora, start with:
+On RHEL 10, the simplest path is:
+
+```sh
+bash scripts/install-rhel-deps.sh --yes
+```
+
+The installer:
+
+- enables CodeReady Builder when `subscription-manager` is available;
+- enables the RHEL 10 extensions repo when `subscription-manager` is available;
+- installs EPEL release configuration for `rtl-sdr` if needed;
+- installs RPM Fusion Free release configuration for `ffmpeg` if needed;
+- installs `nodejs`, `rtl-sdr`, `ffmpeg`, and optionally `chromium`;
+- runs `node scripts/doctor.mjs` at the end.
+
+If you need to review commands first:
+
+```sh
+bash scripts/install-rhel-deps.sh --dry-run
+```
+
+If your organization manages repositories separately:
+
+```sh
+bash scripts/install-rhel-deps.sh --yes --skip-epel --skip-rpmfusion
+```
+
+On Fedora, you can usually install directly:
 
 ```sh
 sudo dnf install nodejs rtl-sdr ffmpeg chromium
 ```
 
 On RHEL, Rocky Linux, AlmaLinux, or CentOS Stream, package availability depends
-on the repositories your system is allowed to use. Enable the official Red Hat
-repositories for Node.js, then use the matching EPEL release for `rtl-sdr` if
-your base repos do not provide it. If `ffmpeg` is unavailable, install an
-organization-approved multimedia repository that provides the `ffmpeg` command.
+on the repositories your system is allowed to use. If `ffmpeg` is unavailable,
+install an organization-approved multimedia repository that provides the
+`ffmpeg` command.
 
 Useful checks:
 

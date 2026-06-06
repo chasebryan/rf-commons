@@ -7,6 +7,7 @@
   "scripts": {
     "audio:rtl": "node scripts/dev.mjs",
     "check": "node scripts/check.mjs",
+    "deps:rhel": "bash scripts/install-rhel-deps.sh",
     "dev": "node scripts/dev.mjs",
     "doctor": "node scripts/doctor.mjs",
     "serve": "node scripts/dev.mjs",

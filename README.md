@@ -65,6 +65,16 @@ node scripts/doctor.mjs
 
 If npm is available, `npm run check` runs the same script.
 
+On RHEL 10, install RF Commons system dependencies with:
+
+```sh
+bash scripts/install-rhel-deps.sh --yes
+```
+
+That installs Node.js, `rtl-sdr` (`rtl_fm` and `rtl_test`), `ffmpeg`, and
+Chromium when available. It also enables the RHEL/EPEL/RPM Fusion repositories
+needed for those packages unless you pass `--skip-epel` or `--skip-rpmfusion`.
+
 ### Receiver Audio
 
 The waterfall demo is visual-only until a real receiver audio stream is
